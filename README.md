@@ -5,6 +5,10 @@
 <h3 align="center">Get battery usage of all devices on Mac and show them on the Dock / StatusBar / Widgets!<br><a href="./README_zh.md">[中文版本]</a><br><a href="https://lihaoyun6.github.io/airbattery/">[Landing Page]</a></h3> 
 </p>
 
+> **Fork notice:** This is a modified fork of [lihaoyun6/AirBattery](https://github.com/lihaoyun6/AirBattery), licensed under AGPL-3.0 like the original.
+> Changes in this fork: redesigned menu bar popover, one-shot charge notifications at 80 / 90 / 100 %, German localization, Xcode 26 build fixes.
+> It uses its own bundle identifiers (`com.yenicizeynel.*`) and update feed, so it never receives updates meant for the original app.
+
 ## Screenshots
 <p align="center">
 <picture>
