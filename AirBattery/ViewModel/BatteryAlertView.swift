@@ -15,7 +15,12 @@ struct btAlert: Codable, Equatable {
     let low: Int
     let lowOn: Bool
     let lowSound: Bool
+    // 充电里程碑 (如 80/90/100%), 每次充电到达时只提醒一次; 可选字段以兼容旧数据
+    var steps: [Int]? = nil
+    var stepSound: Bool? = nil
 }
+
+let chargeMilestones = [80, 90, 100]
 
 struct AlertInputView: View {
     @State private var name: String
@@ -25,6 +30,8 @@ struct AlertInputView: View {
     @State private var lowOn: Bool
     @State private var fullSound: Bool
     @State private var lowSound: Bool
+    @State private var steps: [Int]
+    @State private var stepSound: Bool
     @State private var overCloseButton = false
     @State private var alertList = ud.get(objectType: [btAlert].self, forKey: "alertList") ?? []
 
@@ -40,6 +47,8 @@ struct AlertInputView: View {
         _lowOn = State(initialValue: alert.lowOn)
         _fullSound = State(initialValue: alert.fullSound)
         _lowSound = State(initialValue: alert.lowSound)
+        _steps = State(initialValue: alert.steps ?? [])
+        _stepSound = State(initialValue: alert.stepSound ?? true)
         self.iconName = iconName
         self.onConfirm = onConfirm
         self.onCancel = onCancel
@@ -61,6 +70,28 @@ struct AlertInputView: View {
                 Text(name)
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                 VStack {
+                    HStack(spacing: 4) {
+                        Text("Notify once when charging reaches:")
+                            .foregroundColor(steps.isEmpty ? .secondary : .primary)
+                        Spacer()
+                        Button(action: {
+                            stepSound.toggle()
+                        }, label: {
+                            Image(systemName: stepSound ? "speaker.wave.2.fill" :"speaker.slash.fill")
+                                .foregroundColor(stepSound ? .primary : .secondary)
+                        })
+                        .frame(width: 20)
+                        .buttonStyle(.plain)
+                        .disabled(steps.isEmpty)
+                    }
+                    HStack(spacing: 8) {
+                        ForEach(chargeMilestones, id: \.self) { step in
+                            MilestoneChip(value: step, isOn: steps.contains(step)) {
+                                if steps.contains(step) { steps.removeAll { $0 == step } } else { steps.append(step) }
+                            }
+                        }
+                    }
+                    Spacer().frame(height: 14)
                     HStack(spacing: 4) {
                         Toggle("Notify me when battery charged above:", isOn: $fullOn)
                             .toggleStyle(.checkbox)
@@ -136,7 +167,8 @@ struct AlertInputView: View {
                         })
                     }
                     Button(action: {
-                        let alert = btAlert(name: name, full: full, fullOn: fullOn, fullSound: fullSound, low: low, lowOn: lowOn, lowSound: lowSound)
+                        let alert = btAlert(name: name, full: full, fullOn: fullOn, fullSound: fullSound, low: low, lowOn: lowOn, lowSound: lowSound,
+                                            steps: steps.sorted(), stepSound: stepSound)
                         onConfirm(alert)
                     }, label: {
                         Text("Save").frame(width: canDelete ? 135 : 302, height: 30)
@@ -170,6 +202,35 @@ struct AlertInputView: View {
     }
 }
 
+struct MilestoneChip: View {
+    let value: Int
+    let isOn: Bool
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                if isOn { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)) }
+                Text("\(value)%").font(.system(size: 13, weight: .semibold).monospacedDigit())
+            }
+            .foregroundColor(isOn ? .white : .primary)
+            .frame(maxWidth: .infinity, minHeight: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(isOn ? Color.accentColor : Color.primary.opacity(hovering ? 0.14 : 0.08))
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .focusable(false)
+        .onHover { hovering = $0 }
+        .accessibilityLabel(Text("\(value)%"))
+        .accessibilityValue(Text(isOn ? "On" : "Off"))
+    }
+}
+
 class AlertWindowController {
     var window: NNSWindow?
 
@@ -187,7 +248,7 @@ class AlertWindowController {
 
         // 创建窗口
         let window = NNSWindow(contentViewController: NSHostingController(rootView: alertView))
-        window.setContentSize(NSSize(width: 360, height: 334))
+        window.setContentSize(NSSize(width: 360, height: window.contentViewController?.view.fittingSize.height ?? 334))
         window.title = "Create Battery Alert"
         window.styleMask = [.fullSizeContentView]
         window.isOpaque = false
@@ -222,7 +283,7 @@ func batteryAlert() {
     for device in allDevices.filter({ alertList.map({$0.name}).contains($0.deviceName) }) {
         if let alert = alertList.first(where: { $0.name == device.deviceName }) {
             if device.batteryLevel < alert.low && device.isCharging == 0 && alert.lowOn {
-                if let delay = lowPowerNoteDelay[device.deviceName], delay > now.timeIntervalSince1970 { return }
+                if let delay = lowPowerNoteDelay[device.deviceName], delay > now.timeIntervalSince1970 { continue }
                 let title = "Low Battery".local
                 let body = String(format: "\"%@\" remaining battery %d%%".local, device.deviceName, device.batteryLevel)
                 createNotification(title: title, message: body, alertSound: alert.lowSound, delay: true, info: device.deviceName)
@@ -231,7 +292,7 @@ func batteryAlert() {
                 }
             }
             if device.batteryLevel > alert.full && device.isCharging != 0 && alert.fullOn {
-                if let delay = lowPowerNoteDelay[device.deviceName], delay > now.timeIntervalSince1970 { return }
+                if let delay = lowPowerNoteDelay[device.deviceName], delay > now.timeIntervalSince1970 { continue }
                 let title = "Fully Charged".local
                 let body = String(format: "\"%@\" battery has reached %d%%".local, device.deviceName, device.batteryLevel)
                 createNotification(title: title, message: body, alertSound: alert.fullSound, delay: true, info: device.deviceName)
@@ -239,6 +300,53 @@ func batteryAlert() {
                     if let info = netcastService.createInfo(title: title, info: body) { netcastService.sendMessage(info) }
                 }
             }
+        }
+    }
+}
+
+private var lastSeenLevel = [String: Int]()
+private var reachedMilestones = [String: Set<Int>]()
+
+func chargeMilestoneCheck() {
+    @AppStorage("nearCast") var nearCast = false
+
+    let watched = (ud.get(objectType: [btAlert].self, forKey: "alertList") ?? []).filter { !($0.steps ?? []).isEmpty }
+    if watched.isEmpty { return }
+
+    var allDevices = AirBatteryModel.getAll()
+    let ibStatus = InternalBattery.status
+    if ibStatus.hasBattery { allDevices.append(ib2ab(ibStatus)) }
+    let ncFiles = getFiles(withExtension: "json", in: ncFolder)
+    for ncFile in ncFiles { allDevices += AirBatteryModel.ncGetAll(url: ncFile) }
+
+    for alert in watched {
+        guard let device = allDevices.first(where: { $0.deviceName == alert.name }), device.hasBattery else { continue }
+        let level = device.batteryLevel
+        let steps = alert.steps ?? []
+        // 电量回落到阈值 3% 以下时重置, 下次充电可再次提醒 (留余量防止电量抖动重复提醒)
+        var reached = (reachedMilestones[alert.name] ?? []).filter { level > $0 - 3 }
+        defer {
+            lastSeenLevel[alert.name] = level
+            reachedMilestones[alert.name] = reached
+        }
+        guard let last = lastSeenLevel[alert.name] else {
+            // 首次读取到该设备: 已超过的阈值视为已提醒, 避免启动时误报
+            reached.formUnion(steps.filter { level >= $0 })
+            continue
+        }
+        let charging = device.isCharging != 0 || device.isCharged || device.acPowered
+        guard level > last, charging || level >= 100 else { continue }
+
+        let newSteps = steps.filter { level >= $0 && !reached.contains($0) }
+        // 一次跨越多个阈值时只提醒最高的那个
+        guard let top = newSteps.max() else { continue }
+        reached.formUnion(newSteps)
+
+        let title = top >= 100 ? "Fully Charged".local : String(format: "%d%% Charged".local, top)
+        let body = String(format: "\"%@\" battery has reached %d%%".local, device.deviceName, level)
+        createNotification(title: title, message: body, alertSound: alert.stepSound ?? true, info: device.deviceName)
+        if nearCast {
+            if let info = netcastService.createInfo(title: title, info: body) { netcastService.sendMessage(info) }
         }
     }
 }

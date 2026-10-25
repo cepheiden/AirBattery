@@ -10,6 +10,7 @@ import WidgetKit
 import UserNotifications
 import IOBluetooth
 import Sparkle
+import ServiceManagement
 
 let fd = FileManager.default
 let ud = UserDefaults.standard
@@ -110,18 +111,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUserNotifi
             if ibStatus.hasBattery { allDevices.insert(ib2ab(ibStatus), at: 0) }
             let contentViewSwiftUI = popover(fromDock: true, allDevice: allDevices)
             let contentView = NSHostingView(rootView: contentViewSwiftUI)
-            let hiddenRow = AirBatteryModel.getBlackList().count > 0 ? 1 : 0
-            let allNearcast = getFiles(withExtension: "json", in: ncFolder)
-            var ncCount = 0
-            var ncDeviceCount = 0
-            for jsonUrl in allNearcast {
-                let count = AirBatteryModel.ncGetAll(url: jsonUrl).count
-                if count != 0 {
-                    ncCount += 7
-                    ncDeviceCount += count
-                }
-            }
-            let menuHeight = CGFloat((max(max(allDevices.count,1)+ncDeviceCount,1)+hiddenRow)*37+30+ncCount)
+            // 让 SwiftUI 自行计算内容高度, 避免手工估算
+            let menuHeight = contentView.fittingSize.height
             let mouse = NSEvent.mouseLocation
             var menuX = mouse.x
             var menuY = mouse.y
@@ -162,7 +153,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, UNUserNotifi
             dockWindow.isOpaque = false
             dockWindow.backgroundColor = NSColor.clear
             dockWindow.contentView?.wantsLayer = true
-            dockWindow.contentView?.layer?.cornerRadius = 7
+            dockWindow.contentView?.layer?.cornerRadius = 12
             dockWindow.contentView?.layer?.masksToBounds = true
             dockWindow.makeKeyAndOrderFront(nil)
         }

@@ -155,3 +155,32 @@
 "Uninstall" = "解除安裝";
 "Install" = "安裝";
 "After installation, you can run \"airbattery\" in yor terminal to list all devices." = "安裝此工具後, 在命令列中執行\"airbattery\"即可列出所有裝置.";
+
+/* Popover */
+"No other devices found" = "未發現其他裝置";
+"Nearcast" = "Nearcast";
+"Hidden Devices" = "已隱藏的裝置";
+"Click to show" = "按一下以重新顯示";
+"Refresh Nearcast" = "重新整理 Nearcast";
+"Settings…" = "設定…";
+"Close" = "關閉";
+"Not updated for more than 10 minutes" = "超過 10 分鐘未更新";
+"Set Battery Alert" = "設定電量提醒";
+"Edit Battery Alert" = "編輯電量提醒";
+"Pin to Menu Bar" = "固定到選單列";
+"Unpin from Menu Bar" = "從選單列取消固定";
+"Copy Device Name" = "拷貝裝置名稱";
+"Copied" = "已拷貝";
+"Hide Device" = "隱藏裝置";
+"Charging" = "正在充電";
+"Plugged In" = "已接上電源";
+"On Battery" = "使用電池";
+"Just now" = "剛剛";
+"%d min ago" = "%d 分鐘前";
+"Show “%@” again" = "重新顯示「%@」";
+
+/* Charge milestones */
+"Notify once when charging reaches:" = "充電到達以下電量時提醒一次:";
+"%d%% Charged" = "已充至 %d%%";
+"On" = "開";
+"Off" = "關";
