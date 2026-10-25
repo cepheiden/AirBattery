@@ -1,0 +1,7 @@
+/* 
+  InfoPlist.strings
+  AirBattery
+  
+*/
+"NSBluetoothAlwaysUsageDescription" = "AirBattery verwendet Bluetooth, um die Batteriestände von Geräten in der Nähe abzurufen.";
+"NSLocalNetworkUsageDescription" = "AirBattery verwendet das lokale Netzwerk, um die Batteriestände von Geräten in der Nähe abzurufen.";
