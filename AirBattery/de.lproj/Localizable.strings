@@ -196,3 +196,9 @@
 "Cancle" = "Abbrechen";
 "Add" = "Hinzufügen";
 "Hide Debug Menu" = "Debug-Menü ausblenden";
+
+/* Charge milestones */
+"Notify once when charging reaches:" = "Einmal benachrichtigen beim Laden auf:";
+"%d%% Charged" = "Zu %d %% geladen";
+"On" = "Ein";
+"Off" = "Aus";
